@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'api',
     # 3rd party apps
     'rest_framework',
+    'knox',
 ]
 
 MIDDLEWARE = [
@@ -137,3 +138,17 @@ CLOUDINARY_URL = 'cloudinary://262244163276747:HOZtWAHnzAkH0CMklhZcgCY8CaI@hfl4c
 
 MEDIA_URL = '/media/'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
+
+
+# REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # add knox token authentication to the list, this will be used for authenticating
+        # users with the token.
+        'knox.auth.TokenAuthentication',
+    ],
+}
+
+REST_KNOX = {
+    'AUTO_REFRESH': True,
+}
