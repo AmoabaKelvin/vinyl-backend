@@ -4,3 +4,7 @@ __pycache__/
 media/
 .vscode/
 .idea/
+venv/
+*.sqlite3
+venv/
+env/
