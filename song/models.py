@@ -18,6 +18,7 @@ class Song(models.Model):
     audio_file = models.FileField(upload_to="audio_files/")
     # the track duration will be calculated based on the audio file
     track_duration = models.CharField(max_length=8, blank=True)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
