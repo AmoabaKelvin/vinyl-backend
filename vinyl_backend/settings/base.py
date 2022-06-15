@@ -133,8 +133,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 # cloudinary configurations
 # https://pypi.org/project/django-cloudinary-storage/
-# CLOUDINARY_URL = os.environ['CLOUDINARY_URL']
-CLOUDINARY_URL = 'cloudinary://262244163276747:HOZtWAHnzAkH0CMklhZcgCY8CaI@hfl4cfxfb'
+CLOUDINARY_URL = os.environ['CLOUDINARY_URL']
 
 MEDIA_URL = '/media/'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
