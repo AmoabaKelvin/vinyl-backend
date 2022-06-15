@@ -4,7 +4,8 @@ import stripe
 from api.serializers import PaymentInfoSerializer
 from django.shortcuts import get_object_or_404
 from dotenv import load_dotenv
-from profiles.models import ArtistCustomerProfile
+
+# from profiles.models import ArtistCustomerProfile
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
