@@ -120,7 +120,23 @@ def retrieve_particular_song(request, id):
     )
 
 
-class UserDetailView(RetrieveAPIView):
-    lookup_field = 'id'
-    queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
+# class UserDetailView(RetrieveAPIView):
+#     lookup_field = 'id'
+#     queryset = CustomUser.objects.all()
+#     serializer_class = CustomUserSerializer
+
+
+@api_view(['GET'])
+def retrieve_particular_user(request, id):
+    """
+    Retrieve a particular user.
+    """
+    user = get_object_or_404(CustomUser, id=id)
+    serializer = CustomUserSerializer(user)
+    return Response(
+        {
+            'status': 'success',
+            'result': serializer.data,
+            'details': '',
+        }
+    )
