@@ -85,3 +85,12 @@ class UserSerializer(serializers.ModelSerializer):
         # setting the password to write_only ensures that it is not included
         # in the serialized data
         extra_kwargs = {'password': {'write_only': True}}
+
+
+class PaymentInfoSerializer(serializers.Serializer):
+    """
+    Serializer for the payment info model.
+    """
+
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    currency = serializers.CharField(max_length=3)
