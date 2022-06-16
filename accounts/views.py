@@ -71,7 +71,6 @@ class LoginView(KnoxLoginView):
         # objects to the response data.
         data = super().get_post_response_data(request, token, instance)
         expiry_date = datetime.datetime.strptime(data['expiry'], '%Y-%m-%dT%H:%M:%S.%fZ')
-        print(expiry_date)
         custom_json = {
             'status': 'success',
             'result': {
