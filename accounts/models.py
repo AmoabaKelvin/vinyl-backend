@@ -10,9 +10,7 @@ class CustomUserManager(UserManager):
         if not username:
             raise ValueError("The given username must be set")
         email = self.normalize_email(email)
-        user = self.model(
-            username=username, email=email, first_name=first_name, last_name=last_name, **extra_fields
-        )
+        user = self.model(username=username, email=email, first_name=first_name, last_name=last_name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -43,6 +41,9 @@ class CustomUser(AbstractUser):
     is_admin = models.BooleanField(default=False)
     first_name = models.CharField(max_length=30, blank=False)
     last_name = models.CharField(max_length=30, blank=False)
+    # is_artist boolean is added to indicate whether or not the user is an artist
+    # it is set to false by default
+    is_artist = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']

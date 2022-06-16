@@ -1,11 +1,17 @@
+import datetime
+import json
+
 from api.serializers import RegisterSerializer, UserSerializer
 from django.contrib.auth import login
 from knox.models import AuthToken
 from knox.views import LoginView as KnoxLoginView
 from knox.views import LogoutView
+from profiles.models import ArtistCustomerProfile, NormalCustomerProfile
 from rest_framework import generics, permissions, status
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.response import Response
+
+from .utils import create_stripe_customer
 
 
 class SignUpView(generics.GenericAPIView):
@@ -13,12 +19,42 @@ class SignUpView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        # serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            serializer_errors = ''
+            for key, value in serializer.errors.items():
+                # add error to serializer_errors variable
+                serializer_errors += f"{key}: {value[0]} "
+            return Response(
+                data={
+                    'status': 'failure',
+                    'result': '',
+                    'details': serializer_errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         user = serializer.save()
+        # Pass the user object to the create_stripe_customer function
+        # together with the stripe_data dictionary
+        stripe_account_creation_data = json.loads(request.data['stripe_data'])
+        create_stripe_customer(user, stripe_account_creation_data)
+
+        token = AuthToken.objects.create(user=user)
         return Response(
             {
-                "user": UserSerializer(user, context=self.get_serializer_context()).data,
-                "token": AuthToken.objects.create(user)[1],
+                'status': 'success',
+                'result': {
+                    'user': UserSerializer(user, context=self.get_serializer_context()).data,
+                    'token': token[1],
+                    'token_expiry': datetime.datetime.strftime(
+                        AuthToken.objects.get(user=user).expiry, '%Y-%m-%d %H:%M:%S'
+                    ),
+                    'stripe_account_id': NormalCustomerProfile.objects.get(customer=user).customerid,
+                    'stripe_connect_id': ArtistCustomerProfile.objects.get(artist=user).artistid
+                    if user.is_artist
+                    else None,
+                },
+                'details': '',
             }
         )
 
@@ -30,12 +66,33 @@ class LoginView(KnoxLoginView):
 
     permission_classes = (permissions.AllowAny,)
 
+    def get_post_response_data(self, request, token, instance):
+        # Override the default response data by adding the status and result
+        # objects to the response data.
+        data = super().get_post_response_data(request, token, instance)
+        expiry_date = datetime.datetime.strptime(data['expiry'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        print(expiry_date)
+        custom_json = {
+            'status': 'success',
+            'result': {
+                'expiry': expiry_date,
+                'token': data['token'],
+            },
+        }
+        return custom_json
+
     def post(self, request):
         serializer = AuthTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         login(request, user)
-        return super(LoginView, self).post(request)
+        response = super(LoginView, self).post(request)
+        response.data['result']['user'] = UserSerializer(user).data
+        response.data['result']['stripe_account_id'] = NormalCustomerProfile.objects.get(customer=user).customerid
+        response.data['result']['stripe_connect_id'] = (
+            ArtistCustomerProfile.objects.get(artist=user).artistid if user.is_artist else None
+        )
+        return Response(response.data)
 
 
 # Since the default LogoutView does not return any data to indicate that the user has been logged out,
@@ -43,4 +100,4 @@ class LoginView(KnoxLoginView):
 class CustomLogoutView(LogoutView):
     def post(self, request, format=None):
         super(CustomLogoutView, self).post(request, format)
-        return Response({"logged_out": True}, status=status.HTTP_200_OK)
+        return Response({'status': 'success'}, status=status.HTTP_200_OK)

@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'accounts',
     'song',
     'api',
+    'checkout',
+    'profiles',
     # 3rd party apps
     'rest_framework',
     'knox',
