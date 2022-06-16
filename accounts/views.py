@@ -37,7 +37,6 @@ class SignUpView(generics.GenericAPIView):
                 'result': {
                     'user': UserSerializer(user, context=self.get_serializer_context()).data,
                     'token': AuthToken.objects.create(user)[1],
-                    'is_artist': user.is_artist,
                     'stripe_account_id': NormalCustomerProfile.objects.get(customer=user).customerid,
                     'stripe_connect_id': ArtistCustomerProfile.objects.get(artist=user).artistid
                     if user.is_artist
