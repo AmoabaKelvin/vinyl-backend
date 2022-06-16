@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from api.serializers import RegisterSerializer, UserSerializer
 from django.contrib.auth import login
@@ -9,6 +10,8 @@ from profiles.models import ArtistCustomerProfile, NormalCustomerProfile
 from rest_framework import generics, permissions, status
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.response import Response
+
+from .utils import create_stripe_customer
 
 
 class SignUpView(generics.GenericAPIView):
@@ -31,6 +34,11 @@ class SignUpView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user = serializer.save()
+        # Pass the user object to the create_stripe_customer function
+        # together with the stripe_data dictionary
+        stripe_account_creation_data = json.loads(request.data['stripe_data'])
+        create_stripe_customer(user, stripe_account_creation_data)
+
         token = AuthToken.objects.create(user=user)
         return Response(
             {
