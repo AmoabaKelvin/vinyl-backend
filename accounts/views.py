@@ -31,12 +31,16 @@ class SignUpView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user = serializer.save()
+        token = AuthToken.objects.create(user=user)
         return Response(
             {
                 'status': 'success',
                 'result': {
                     'user': UserSerializer(user, context=self.get_serializer_context()).data,
-                    'token': AuthToken.objects.create(user)[1],
+                    'token': token[1],
+                    'token_expiry': datetime.datetime.strftime(
+                        AuthToken.objects.get(user=user).expiry, '%Y-%m-%d %H:%M:%S'
+                    ),
                     'stripe_account_id': NormalCustomerProfile.objects.get(customer=user).customerid,
                     'stripe_connect_id': ArtistCustomerProfile.objects.get(artist=user).artistid
                     if user.is_artist
@@ -59,10 +63,11 @@ class LoginView(KnoxLoginView):
         # objects to the response data.
         data = super().get_post_response_data(request, token, instance)
         expiry_date = datetime.datetime.strptime(data['expiry'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        print(expiry_date)
         custom_json = {
             'status': 'success',
             'result': {
-                'expiry': expiry_date.strftime("%m/%d/%Y, %H:%M:%S"),
+                'expiry': expiry_date,
                 'token': data['token'],
             },
         }
