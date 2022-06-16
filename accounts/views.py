@@ -38,8 +38,10 @@ class SignUpView(generics.GenericAPIView):
                     'user': UserSerializer(user, context=self.get_serializer_context()).data,
                     'token': AuthToken.objects.create(user)[1],
                     'is_artist': user.is_artist,
-                    'customer_id': NormalCustomerProfile.objects.get(customer=user).customerid,
-                    'artist_id': ArtistCustomerProfile.objects.get(artist=user).artistid if user.is_artist else None,
+                    'stripe_account_id': NormalCustomerProfile.objects.get(customer=user).customerid,
+                    'stripe_connect_id': ArtistCustomerProfile.objects.get(artist=user).artistid
+                    if user.is_artist
+                    else None,
                 },
                 'details': '',
             }
@@ -74,8 +76,8 @@ class LoginView(KnoxLoginView):
         login(request, user)
         response = super(LoginView, self).post(request)
         response.data['result']['user'] = UserSerializer(user).data
-        response.data['result']['customer_id'] = NormalCustomerProfile.objects.get(customer=user).customerid
-        response.data['result']['artist_id'] = (
+        response.data['result']['stripe_account_id'] = NormalCustomerProfile.objects.get(customer=user).customerid
+        response.data['result']['stripe_connect_id'] = (
             ArtistCustomerProfile.objects.get(artist=user).artistid if user.is_artist else None
         )
         return Response(response.data)
