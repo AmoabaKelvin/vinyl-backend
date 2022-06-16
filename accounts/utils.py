@@ -14,12 +14,14 @@ def create_stripe_customer(instance, stripe_data: dict):
     if instance.is_artist:
         # create a stripe account for the artist
         # this account will be used for receiving payments in the future
-        artist_account = stripe.Account.create(
-            type="express",
-            country="US",
-            email=instance.email,
-            business_type="individual",
-            individual=stripe_data,
-        )
-        # create a customer profile for the artist
-        ArtistCustomerProfile.objects.create(artist=instance, artistid=artist_account.id)
+        try:
+            artist_account = stripe.Account.create(
+                type="express",
+                country="US",
+                email=instance.email,
+                business_type="individual",
+                individual=stripe_data,
+            )
+            ArtistCustomerProfile.objects.create(artist=instance, artistid=artist_account.id)
+        except stripe.error.InvalidRequestError as e:
+            pass
