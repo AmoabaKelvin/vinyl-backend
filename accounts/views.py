@@ -1,6 +1,7 @@
 import datetime
 import json
 
+import stripe
 from api.serializers import RegisterSerializer, UserSerializer
 from api.utils import return_structured_data
 from django.contrib.auth import login
@@ -30,8 +31,15 @@ class SignUpView(generics.GenericAPIView):
             )
         user = serializer.save()
         stripe_connect_id = None
+        onboarding = None
         if user.is_artist:
             stripe_connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
+            onboarding = stripe.AccountLink.create(
+                account=stripe_connect_id,
+                refresh_url="https://project-vinyl-backend.herokuapp.com/api/checkout/done",
+                return_url="https://project-vinyl-backend.herokuapp.com/api/checkout/done",
+                type="account_onboarding",
+            ).url
         stripe_account_id = NormalCustomerProfile.objects.get(customer=user).customerid
         token = AuthToken.objects.create(user=user)
         formatted_token_expiry_date = datetime.datetime.strftime(
@@ -43,6 +51,7 @@ class SignUpView(generics.GenericAPIView):
             'token_expiry': formatted_token_expiry_date,
             'stripe_account_id': stripe_account_id,
             'stripe_connect_id': stripe_connect_id,
+            'onboarding_url': onboarding,
         }
         return Response(
             data=return_structured_data('success', response_result, ''),
