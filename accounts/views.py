@@ -34,9 +34,8 @@ class SignUpView(generics.GenericAPIView):
             stripe_connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
         stripe_account_id = NormalCustomerProfile.objects.get(customer=user).customerid
         token = AuthToken.objects.create(user=user)
-        formatted_token_expiry_date = (
-            AuthToken.objects.get(user=user).expiry,
-            '%Y-%m-%d %H:%M:%S',
+        formatted_token_expiry_date = datetime.datetime.strftime(
+            AuthToken.objects.get(user=user).expiry, '%Y-%m-%d %H:%M:%S'
         )
         response_result = {
             'user': UserSerializer(user).data,
