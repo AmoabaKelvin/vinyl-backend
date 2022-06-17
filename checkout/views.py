@@ -2,8 +2,6 @@ import ast
 import os
 
 import stripe
-from api.permissions import UserIsArtistOrError
-from api.serializers import PaymentInfoSerializer
 from api.utils import return_structured_data
 from django.shortcuts import get_object_or_404
 from dotenv import load_dotenv
@@ -143,7 +141,7 @@ def display_thank_you(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated, UserIsArtistOrError])
+@permission_classes([permissions.IsAuthenticated])
 def delete_account(request):
     """
     Delete the account of an artist
