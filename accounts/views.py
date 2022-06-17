@@ -28,8 +28,14 @@ class SignUpView(generics.GenericAPIView):
                 data=return_structured_data('failure', '', serializer_errors),
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        try:
+            stripe_account_creation_data = json.loads(request.data['stripe_data'])
+        except json.JSONDecodeError:
+            return Response(
+                data=return_structured_data('failure', '', 'Invalid JSON'),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         user = serializer.save()
-        stripe_account_creation_data = json.loads(request.data['stripe_data'])
         # Pass the user object to the `stripe_account_creation_data` function
         # together with the stripe_data dictionary obtained from request.data,
         # the stripe_data will be used to create a stripe account for the artist
