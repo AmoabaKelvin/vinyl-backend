@@ -2,6 +2,7 @@ import ast
 import os
 
 import stripe
+from api.permissions import UserIsArtistOrError
 from api.serializers import PaymentInfoSerializer
 from api.utils import return_structured_data
 from django.shortcuts import get_object_or_404
@@ -138,4 +139,24 @@ def display_thank_you(request):
     """
     return Response(
         return_structured_data('success', '', 'Thank you for your purchase')
+    )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, UserIsArtistOrError])
+def delete_account(request):
+    """
+    Delete the account of an artist
+    """
+    artist = ArtistCustomerProfile.objects.get(artist=request.user)
+    artist_stripe_account_id = artist.artistid
+    try:
+        response: dict = stripe.Account.delete(artist_stripe_account_id)
+        artist.delete()
+    except Exception as e:
+        return Response(
+            return_structured_data('failure', '', 'Failed to delete account')
+        )
+    return Response(
+        return_structured_data('success', response, ''), status=status.HTTP_200_OK
     )
