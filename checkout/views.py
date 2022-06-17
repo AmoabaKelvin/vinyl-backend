@@ -5,7 +5,7 @@ import stripe
 from api.utils import return_structured_data
 from django.shortcuts import get_object_or_404
 from dotenv import load_dotenv
-from profiles.models import ArtistCustomerProfile
+from profiles.models import ArtistCustomerProfile, NormalCustomerProfile
 
 # from profiles.models import ArtistCustomerProfile
 from rest_framework import permissions, status
@@ -146,11 +146,16 @@ def delete_account(request):
     """
     Delete the account of an artist
     """
-    artist = ArtistCustomerProfile.objects.get(artist=request.user)
-    artist_stripe_account_id = artist.artistid
-    try:
+    if request.user.is_artist:
+        artist = ArtistCustomerProfile.objects.get(artist=request.user)
+        artist_stripe_account_id = artist.artistid
         response: dict = stripe.Account.delete(artist_stripe_account_id)
         artist.delete()
+    customer = NormalCustomerProfile.objects.get(customer=request.user)
+    customer_id = customer_id.customerid
+    try:
+        response: dict = stripe.Account.delete(customer_id)
+        customer.delete()
     except Exception as e:
         return Response(
             return_structured_data('failure', '', 'Failed to delete account')
