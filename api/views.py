@@ -53,3 +53,14 @@ def retrieve_particular_user(request, id: int):
     user = get_object_or_404(CustomUser, id=id)
     serializer = CustomUserSerializer(user)
     return Response(return_structured_data('success', serializer.data, ''))
+
+
+# view to search for a song
+@api_view(['GET'])
+def search_song(request, song_name: str):
+    """
+    Search for a song by name.
+    """
+    songs = Song.objects.filter(title__icontains=song_name)
+    serializer = SongSerializer(songs, many=True)
+    return Response(return_structured_data('success', serializer.data, ''))
