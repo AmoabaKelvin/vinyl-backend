@@ -66,3 +66,21 @@ def retrieve_account_balance(request):
         'pending_balance': pending_balance,
     }
     return Response(return_structured_data('success', response_data, ''))
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def retrieve_account_info(request):
+    """
+    Retrieve account information for a user(artist).
+    """
+    # get the customer profile
+    artist_profile = ArtistCustomerProfile.objects.get(artist=request.user)
+    artist_stripe_account_id = artist_profile.artistid
+    try:
+        response: dict = stripe.Account.retrieve(artist_stripe_account_id)
+    except Exception as e:
+        return Response(
+            return_structured_data('failure', '', 'Failed to retrieve account info')
+        )
+    return Response(return_structured_data('success', response, ''))
