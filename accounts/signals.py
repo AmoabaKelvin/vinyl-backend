@@ -30,6 +30,10 @@ def create_stripe_account(instance, created, **kwargs):
                     type="express",
                     country="US",
                     email=instance.email,
+                    capabilities={
+                        "card_payments": {"requested": True},
+                        "transfers": {"requested": True},
+                    },
                 )
                 ArtistCustomerProfile.objects.create(
                     artist=instance, artistid=artist_account.id
