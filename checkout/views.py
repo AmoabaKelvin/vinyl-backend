@@ -1,3 +1,4 @@
+import ast
 import os
 
 import stripe
@@ -18,29 +19,43 @@ load_dotenv()
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def buy_song(request, song_id):
     """
     Process the payment for a song
+    Args:
+        song_id: id of the song to be purchased
+    Returns:
+        Response: response object
     """
-    # Use the song_id to get the song object and then retrieve the price of
-    # the song.
     song = get_object_or_404(Song, id=song_id)
-    # get payment data from serializer
-    payment_serializer_data = PaymentInfoSerializer(data=request.data)
-    if payment_serializer_data.is_valid():
-        amount = payment_serializer_data.validated_data['amount']
-        currency = payment_serializer_data.validated_data['currency']
-        payment_intent = stripe.PaymentIntent.create(
-            amount=int(amount),
-            currency=currency,
-            description=f"Payment for song {song.title}-{song.artist}",
-        )
-        return Response(
-            return_structured_data('success', payment_intent.client_secret, ''),
-            status=status.HTTP_200_OK,
-        )
+    # get the song data from the song object.
+    # the obtained data will be used to make the Payment
+    song_price = song.price
+    song_artist = song.artist
+    song_artist_connect_id = ArtistCustomerProfile.objects.get(
+        artist=song_artist
+    ).artistid
+    song_price_for_strip = int(song_price * 100)
+    # start processing payment
+    payment_intent = stripe.PaymentIntent.create(
+        amount=song_price_for_strip,
+        currency='usd',
+        description=f"Payment for song {song.title}-{song.artist}",
+        application_fee_amount=int(
+            song_price_for_strip * 0.03
+        ),  # 35% of the song price
+        transfer_data={
+            # the destination represents the account that the money will be
+            # transferred to, in this case, the artist's account
+            'destination': song_artist_connect_id,
+        },
+    )
+    return Response(
+        return_structured_data('success', payment_intent.client_secret, ''),
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(['GET'])
@@ -59,6 +74,9 @@ def retrieve_account_balance(request):
     except Exception as e:
         response = {'error': 'error retrieving account balance'}
         return Response(return_structured_data('failure', response, ''))
+    # if no error, return the account balance, specifically the
+    # available_balance and the pending balance.
+    # https://stripe.com/docs/api/balance/balance_object
     available_balance = response['available'][0]['amount']
     pending_balance = response['pending'][0]['amount']
     response_data = {
@@ -82,5 +100,32 @@ def retrieve_account_info(request):
     except Exception as e:
         return Response(
             return_structured_data('failure', '', 'Failed to retrieve account info')
+        )
+    return Response(return_structured_data('success', response, ''))
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def update_account_info(request):
+    """
+    Update the account information of an artist
+    """
+    try:
+        stripe_data = ast.literal_eval(request.data['stripe_data'])
+    except:
+        return Response(
+            return_structured_data('failure', '', 'Could not parse stripe_data')
+        )
+    artist = ArtistCustomerProfile.objects.get(artist=request.user)
+    artist_stripe_account_id = artist.artistid
+    try:
+        response: dict = stripe.Account.modify(
+            artist_stripe_account_id,
+            business_type="individual",
+            metadata=stripe_data,
+        )
+    except Exception as e:
+        return Response(
+            return_structured_data('failure', '', 'Failed to update account info')
         )
     return Response(return_structured_data('success', response, ''))
