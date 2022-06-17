@@ -129,3 +129,13 @@ def update_account_info(request):
             return_structured_data('failure', '', 'Failed to update account info')
         )
     return Response(return_structured_data('success', response, ''))
+
+
+@api_view(['GET'])
+def display_thank_you(request):
+    """
+    Display the thank you page
+    """
+    return Response(
+        return_structured_data('success', '', 'Thank you for your purchase')
+    )
