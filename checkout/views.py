@@ -16,6 +16,8 @@ from .stripe_utils import (
     create_ephemeral_key,
     create_payment_intent,
     initiate_payout_request,
+    list_artist_transactions,
+    list_transactions_for_a_customer,
     retrieve_account_information,
     retrive_connect_account_balance,
     update_account_information,
@@ -38,10 +40,14 @@ def buy_song(request, song_id):
     """
     song = get_object_or_404(Song, id=song_id)
     song_price = song.price
+    song_title = song.title
+    artist = song.artist
     artist_connectid = ArtistCustomerProfile.objects.get(artist=song.artist).artistid
     customerid = NormalCustomerProfile.objects.get(customer=request.user).customerid
     # create payment intent and ephemeral key
-    payment_intent = create_payment_intent(song_price, artist_connectid, customerid)
+    payment_intent = create_payment_intent(
+        song_title, artist, song_price, artist_connectid, customerid
+    )
     ephemeral_key = create_ephemeral_key(customerid)
     data = {
         'client_secret': payment_intent.client_secret,
@@ -144,3 +150,25 @@ def request_payout(request):
     except stripe.error.InvalidRequestError as e:
         return Response(return_structured_data('failure', '', str(e.user_message)))
     return Response(return_structured_data('success', payment_request_response, ''))
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, UserIsArtistOrError])
+def retrieve_artist_transaction_history(request):
+    """
+    Retrieve the transaction history for an artist
+    """
+    artist_id = ArtistCustomerProfile.objects.get(artist=request.user).artistid
+    response: dict = list_artist_transactions(artist_id)
+    return Response(return_structured_data('success', response, ''))
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def retrieve_customer_transaction_history(request):
+    """
+    Retrieve the transaction history for a customer
+    """
+    customer_id = NormalCustomerProfile.objects.get(customer=request.user).customerid
+    response: dict = list_transactions_for_a_customer(customer_id)
+    return Response(return_structured_data('success', response, ''))
