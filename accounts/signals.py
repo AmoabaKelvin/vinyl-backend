@@ -19,8 +19,13 @@ def create_stripe_account(instance, created, **kwargs):
                 email=instance.email,
                 description=instance.username,
             )
+            ephemeral_key = stripe.EphemeralKey.create(
+                customer=customer.id, stripe_version='2020-08-27'
+            )
             NormalCustomerProfile.objects.create(
-                customer=instance, customerid=customer.id
+                customer=instance,
+                customerid=customer.id,
+                ephemeral_key=ephemeral_key.secret,
             )
             if instance.is_artist:
                 # create a stripe account for the artist
@@ -36,7 +41,8 @@ def create_stripe_account(instance, created, **kwargs):
                     },
                 )
                 ArtistCustomerProfile.objects.create(
-                    artist=instance, artistid=artist_account.id
+                    artist=instance,
+                    artistid=artist_account.id,
                 )
         except stripe.error.InvalidRequestError as e:
             # If there is any error encounted during the account creation process,
