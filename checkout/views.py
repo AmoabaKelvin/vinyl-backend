@@ -19,8 +19,9 @@ from .stripe_utils import (
     list_artist_transactions,
     list_transactions_for_a_customer,
     retrieve_account_information,
-    retrive_connect_account_balance,
+    retrieve_connect_account_balance,
     update_account_information,
+    request_refund,
 )
 
 load_dotenv()
@@ -39,16 +40,17 @@ def buy_song(request, song_id):
         Response: response object
     """
     song = get_object_or_404(Song, id=song_id)
+    song_id = song.id
     song_price = song.price
     song_title = song.title
-    artist = song.artist
-    artist_connectid = ArtistCustomerProfile.objects.get(artist=song.artist).artistid
-    customerid = NormalCustomerProfile.objects.get(customer=request.user).customerid
+    artist = song.artist.username
+    artist_connect_id = ArtistCustomerProfile.objects.get(artist=song.artist).artistid
+    customer_id = NormalCustomerProfile.objects.get(customer=request.user).customerid
     # create payment intent and ephemeral key
     payment_intent = create_payment_intent(
-        song_title, artist, song_price, artist_connectid, customerid
+        song_title, artist, song_id, song_price, artist_connect_id, customer_id
     )
-    ephemeral_key = create_ephemeral_key(customerid)
+    ephemeral_key = create_ephemeral_key(customer_id)
     data = {
         'client_secret': payment_intent.client_secret,
         'ephemeral_key': ephemeral_key,
@@ -68,9 +70,9 @@ def retrieve_account_balance(request):
     artist_customer_profile = ArtistCustomerProfile.objects.get(artist=request.user)
     artist_id = artist_customer_profile.artistid
     try:
-        balance_info: tuple = retrive_connect_account_balance(artist_id)
-    except:
-        error_message = {'error': 'error retrieving account balance'}
+        balance_info: tuple = retrieve_connect_account_balance(artist_id)
+    except stripe.error.InvalidRequestError:
+        error_message = 'error retrieving account balance'
         return Response(return_structured_data('failure', '', error_message))
     # obtain the balance information from the balance_info tuple
     # balance_info[0] being the available balance, balance_info[1] being the
@@ -94,7 +96,7 @@ def retrieve_account_info(request):
     artist_stripe_account_id = artist_profile.artistid
     try:
         response: dict = retrieve_account_information(artist_stripe_account_id)
-    except Exception as e:
+    except stripe.error.InvalidRequestError:
         return Response(
             return_structured_data('failure', '', 'Failed to retrieve account info')
         )
@@ -109,14 +111,14 @@ def update_account_info(request):
     """
     try:
         stripe_data = ast.literal_eval(request.data['stripe_data'])
-    except:
+    except ValueError:
         return Response(
             return_structured_data('failure', '', 'Could not parse stripe_data')
         )
     artistid = ArtistCustomerProfile.objects.get(artist=request.user).artistid
     try:
         response = update_account_information(artistid, stripe_data)
-    except:
+    except stripe.error.InvalidRequestError:
         return Response(
             return_structured_data('failure', '', 'Failed to update account info')
         )
@@ -126,7 +128,7 @@ def update_account_info(request):
 @api_view(['GET'])
 def display_thank_you(request):
     """
-    Display the thank you page
+    Display the “Thank You” page
     """
     return Response(
         return_structured_data('success', '', 'Thank you for your purchase')
@@ -142,7 +144,7 @@ def request_payout(request):
     artist = ArtistCustomerProfile.objects.get(artist=request.user)
     artist_stripe_account_id = artist.artistid
     # get account balance of user requesting the payout
-    available_balance = retrive_connect_account_balance(artist_stripe_account_id)[1]
+    available_balance = retrieve_connect_account_balance(artist_stripe_account_id)[1]
     try:
         payment_request_response = initiate_payout_request(
             user_account=artist_stripe_account_id, amount=int(available_balance)
@@ -172,3 +174,18 @@ def retrieve_customer_transaction_history(request):
     customer_id = NormalCustomerProfile.objects.get(customer=request.user).customerid
     response: dict = list_transactions_for_a_customer(customer_id)
     return Response(return_structured_data('success', response, ''))
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def request_payment_refund(request, song_id: int):
+    """
+    Request a refund for a song
+    """
+    customer_id = NormalCustomerProfile.objects.get(customer=request.user).customerid
+    try:
+        response: dict = request_refund(customer_id, song_id)
+    except stripe.error.InvalidRequestError:
+        return Response(
+            return_structured_data('failure', '', 'No successful charge to refund'))
+    return Response(return_structured_data('success', response['status'], ''))
