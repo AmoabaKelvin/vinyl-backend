@@ -4,7 +4,7 @@ from typing import Tuple
 import stripe
 
 
-def retrive_connect_account_balance(account_id: str) -> Tuple[str, str]:
+def retrieve_connect_account_balance(account_id: str) -> Tuple[str, str]:
     """
     Retrieve account balance for a user(artist).
     """
@@ -15,7 +15,7 @@ def retrive_connect_account_balance(account_id: str) -> Tuple[str, str]:
     return available_balance, pending_balance
 
 
-def retrive_bank_account_info(account_id: str) -> str:
+def retrieve_bank_account_info(account_id: str) -> str:
     """
     Retrieve bank account information for a user(artist).
     """
@@ -63,11 +63,13 @@ def update_account_information(account_id: str, update_data: dict) -> dict:
 
 
 def create_payment_intent(
-    title: str, artist: str, amount: int, destination: str, customer: str
+        title: str, artist: str, song_id, amount, destination: str, customer: str
 ):
     """
     Create a payment intent and return the client secret
     Args:
+        title: The title of the song being bought.
+        artist: The username of the artist to which that song belongs.
         amount: amount to be paid
         destination: stripe account id of the recipient
         customer: stripe account id of the customer
@@ -86,8 +88,11 @@ def create_payment_intent(
         automatic_payment_methods={'enabled': True},
         customer=customer,
         description=f"Payment for song: {title} by {artist}",
+        metadata={
+            'song_id': song_id
+        }
     )
-    return response.client_secret
+    return response
 
 
 def retrieve_account_information(account_id: str) -> dict:
@@ -127,3 +132,38 @@ def list_transactions_for_a_customer(account_id: str):
     """
     response: dict = stripe.Customer.list_balance_transactions(account_id)
     return response
+
+
+def fetch_payment_intents(customer_id: str) -> dict:
+    """
+    Fetch the payment intents for a customer.
+    Args:
+        customer_id: the customer id of the user to fetch payment intents for.
+    Returns:
+        payment_intents dict
+    """
+    response: dict = stripe.PaymentIntent.list(customer=customer_id)
+    return response
+
+
+def request_refund(customer_id: str, song_id: int) -> dict:
+    """
+    Request af refund on a payment intent.
+    Args:
+        customer_id: The customer_id of the user requesting refund.
+        song_id: The song id of the song to request refund on.
+    Returns:
+        The status of the refund
+    https://stripe.com/docs/api/refunds/create
+    """
+    response = fetch_payment_intents(customer_id)
+    payment_intents: list = response['data']
+    payment_intent_to_refund: int = None
+    for index, value in enumerate(payment_intents):
+        if value['metadata']['song_id'] == str(song_id):
+            payment_intent_to_refund = index
+    # the index of the actual payment intent to refund to has been obtained.
+    # proceed to retrieve the payment intent id
+    payment_intent_id = payment_intents[payment_intent_to_refund]['id']
+    refund: dict = stripe.Refund.create(payment_intent=payment_intent_id)
+    return refund
