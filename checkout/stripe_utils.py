@@ -41,3 +41,14 @@ def initiate_payout_request(bank_id: str, amount: int, currency: str = 'usd') ->
         destination=bank_id,
     )
     return response
+
+
+def create_ephemeral_key(customer_id: str) -> str:
+    """
+    Create an ephemeral key for a user(artist).
+    """
+    # https://stripe.com/docs/api/tokens/create_ephemeral
+    response: dict = stripe.EphemeralKey.create(
+        customer=customer_id, stripe_version='2020-08-27'
+    )
+    return response.secret
