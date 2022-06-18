@@ -19,13 +19,8 @@ def create_stripe_account(instance, created, **kwargs):
                 email=instance.email,
                 description=instance.username,
             )
-            ephemeral_key = stripe.EphemeralKey.create(
-                customer=customer.id, stripe_version='2020-08-27'
-            )
             NormalCustomerProfile.objects.create(
-                customer=instance,
-                customerid=customer.id,
-                ephemeral_key=ephemeral_key.secret,
+                customer=instance, customerid=customer.id
             )
             if instance.is_artist:
                 # create a stripe account for the artist
