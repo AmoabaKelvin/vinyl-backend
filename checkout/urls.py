@@ -8,6 +8,7 @@ urlpatterns = [
     path('account/info', views.retrieve_account_info, name='account'),
     path('account/update', views.update_account_info, name='account_update'),
     path('payout', views.request_payout, name='payout'),
+    path('refund/<int:song_id>', views.request_payment_refund, name='request_refund'),
     path(
         'artist/history',
         views.retrieve_artist_transaction_history,
