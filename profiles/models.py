@@ -14,4 +14,3 @@ class NormalCustomerProfile(models.Model):
         CustomUser, on_delete=models.CASCADE, related_name='normal_profile'
     )
     customerid = models.CharField(max_length=100)
-    ephemeral_key = models.CharField(max_length=100)
