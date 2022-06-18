@@ -1,5 +1,4 @@
 import datetime
-import json
 
 import stripe
 from api.serializers import RegisterSerializer, UserSerializer
@@ -11,9 +10,8 @@ from knox.views import LogoutView
 from profiles.models import ArtistCustomerProfile, NormalCustomerProfile
 from rest_framework import generics, permissions, status
 from rest_framework.authtoken.serializers import AuthTokenSerializer
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-
-from .utils import create_stripe_account
 
 
 class SignUpView(generics.GenericAPIView):
@@ -32,6 +30,7 @@ class SignUpView(generics.GenericAPIView):
         user = serializer.save()
         stripe_connect_id = None
         onboarding = None
+        ephemeral_key = NormalCustomerProfile.objects.get(customer=user).ephemeral_key
         if user.is_artist:
             stripe_connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
             onboarding = stripe.AccountLink.create(
@@ -51,6 +50,7 @@ class SignUpView(generics.GenericAPIView):
             'token_expiry': formatted_token_expiry_date,
             'stripe_account_id': stripe_account_id,
             'stripe_connect_id': stripe_connect_id,
+            'ephemeral_key': ephemeral_key,
             'onboarding_url': onboarding,
         }
         return Response(
@@ -100,13 +100,15 @@ class LoginView(KnoxLoginView):
         connect_id = None
         if user.is_artist:
             connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
-        account_id = NormalCustomerProfile.objects.get(customer=user).customerid
+        customer = NormalCustomerProfile.objects.get(customer=user)
+        account_id = customer.customerid
         # Getting response data from the super class
         response = super(LoginView, self).post(request)
         response_data = response.data['result']
         response_data['user'] = UserSerializer(user).data
         response_data['stripe_account_id'] = account_id
         response_data['stripe_connect_id'] = connect_id
+        response_data['ephemeral_key'] = customer.ephemeral_key
         return Response(response.data)
 
 
@@ -116,3 +118,21 @@ class CustomLogoutView(LogoutView):
     def post(self, request, format=None):
         super(CustomLogoutView, self).post(request, format)
         return Response(return_structured_data('success', '', ''))
+
+
+@api_view(['GET'])
+@permission_classes((permissions.IsAuthenticated,))
+def delete_user_account(request):
+    """
+    Delete the user's account.
+    """
+    user = request.user
+    # get the user's stripe account id and customer id and then delete them as
+    # well.
+    if user.is_artist:
+        stripe_connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
+        stripe.Account.delete(stripe_connect_id)
+    customer_id = NormalCustomerProfile.objects.get(customer=user).customerid
+    stripe.Customer.delete(customer_id)
+    user.delete()
+    return Response(return_structured_data('success', '', ''))
