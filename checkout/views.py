@@ -36,20 +36,21 @@ def buy_song(request, song_id):
     song_artist_connect_id = ArtistCustomerProfile.objects.get(
         artist=song_artist
     ).artistid
-    song_price_for_strip = int(song_price * 100)
+    song_price_for_stripe = int(song_price * 100)
     # start processing payment
     payment_intent = stripe.PaymentIntent.create(
-        amount=song_price_for_strip,
+        amount=song_price_for_stripe,
         currency='usd',
         description=f"Payment for song {song.title}-{song.artist}",
         application_fee_amount=int(
-            song_price_for_strip * 0.03
-        ),  # 35% of the song price
+            song_price_for_stripe * 0.03
+        ),  # 3% of the song price
         transfer_data={
             # the destination represents the account that the money will be
             # transferred to, in this case, the artist's account
             'destination': song_artist_connect_id,
         },
+        automatic_payment_methods={'enabled': True},
     )
     return Response(
         return_structured_data('success', payment_intent.client_secret, ''),
@@ -140,26 +141,26 @@ def display_thank_you(request):
     )
 
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def delete_account(request):
-    """
-    Delete the account of an artist
-    """
-    if request.user.is_artist:
-        artist = ArtistCustomerProfile.objects.get(artist=request.user)
-        artist_stripe_account_id = artist.artistid
-        response: dict = stripe.Account.delete(artist_stripe_account_id)
-        artist.delete()
-    customer = NormalCustomerProfile.objects.get(customer=request.user)
-    customer_id = customer_id.customerid
-    try:
-        response: dict = stripe.Account.delete(customer_id)
-        customer.delete()
-    except Exception as e:
-        return Response(
-            return_structured_data('failure', '', 'Failed to delete account')
-        )
-    return Response(
-        return_structured_data('success', response, ''), status=status.HTTP_200_OK
-    )
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# def delete_account(request):
+#     """
+#     Delete the account of an artist
+#     """
+#     if request.user.is_artist:
+#         artist = ArtistCustomerProfile.objects.get(artist=request.user)
+#         artist_stripe_account_id = artist.artistid
+#         response: dict = stripe.Account.delete(artist_stripe_account_id)
+#         artist.delete()
+#     customer = NormalCustomerProfile.objects.get(customer=request.user)
+#     customer_id = customer_id.customerid
+#     try:
+#         response: dict = stripe.Account.delete(customer_id)
+#         customer.delete()
+#     except Exception as e:
+#         return Response(
+#             return_structured_data('failure', '', 'Failed to delete account')
+#         )
+#     return Response(
+#         return_structured_data('success', response, ''), status=status.HTTP_200_OK
+#     )
