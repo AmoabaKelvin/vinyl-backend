@@ -62,7 +62,9 @@ def update_account_information(account_id: str, update_data: dict) -> dict:
     return response
 
 
-def create_payment_intent(amount: int, destination: str, customer: str):
+def create_payment_intent(
+    title: str, artist: str, amount: int, destination: str, customer: str
+):
     """
     Create a payment intent and return the client secret
     Args:
@@ -83,6 +85,7 @@ def create_payment_intent(amount: int, destination: str, customer: str):
         },
         automatic_payment_methods={'enabled': True},
         customer=customer,
+        description=f"Payment for song: {title} by {artist}",
     )
     return response.client_secret
 
@@ -97,4 +100,30 @@ def retrieve_account_information(account_id: str) -> dict:
     https://stripe.com/docs/api/accounts/retrieve
     """
     response: dict = stripe.Account.retrieve(account_id)
+    return response
+
+
+def list_artist_transactions(account_id: str) -> dict:
+    """
+    List all balance transactions for an artist.
+    Args:
+        account_id: stripe account id of the artist
+    Returns:
+        response: dictionary of balance transactions
+    https://stripe.com/docs/api/customer_balance_transactions/list
+    """
+    response: dict = stripe.Transfer.list(stripe_account=account_id)
+    return response
+
+
+def list_transactions_for_a_customer(account_id: str):
+    """
+    List all transactions for a user.
+    Args:
+        account_id: stripe account id of the user
+    Returns:
+        response: dictionary of transactions
+    https://stripe.com/docs/api/customer_balance_transactions/list
+    """
+    response: dict = stripe.Customer.list_balance_transactions(account_id)
     return response
