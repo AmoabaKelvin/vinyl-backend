@@ -58,7 +58,7 @@ def buy_song(request, song_id):
             'destination': song_artist_connect_id,
         },
         automatic_payment_methods={'enabled': True},
-        customer=NormalCustomerProfile.objects.get(user=request.user).customerid,
+        customer=NormalCustomerProfile.objects.get(customer=request.user).customerid,
     )
     return Response(
         return_structured_data('success', payment_intent.client_secret, ''),
