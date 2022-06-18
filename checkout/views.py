@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from song.models import Song
 
 from .stripe_utils import (
+    create_ephemeral_key,
     initiate_payout_request,
     retrive_bank_account_info,
     retrive_connect_account_balance,
@@ -44,6 +45,7 @@ def buy_song(request, song_id):
         artist=song_artist
     ).artistid
     song_price_for_stripe = int(song_price * 100)
+    customerid = NormalCustomerProfile.objects.get(customer=request.user).customerid
     # start processing payment
     payment_intent = stripe.PaymentIntent.create(
         amount=song_price_for_stripe,
@@ -58,10 +60,16 @@ def buy_song(request, song_id):
             'destination': song_artist_connect_id,
         },
         automatic_payment_methods={'enabled': True},
-        customer=NormalCustomerProfile.objects.get(customer=request.user).customerid,
+        customer=customerid,
     )
+    # create an ephemeral key for the user
+    ephemeral_key = create_ephemeral_key(customerid)
+    data = {
+        'client_secret': payment_intent.client_secret,
+        'ephemeral_key': ephemeral_key,
+    }
     return Response(
-        return_structured_data('success', payment_intent.client_secret, ''),
+        return_structured_data('success', data, ''),
         status=status.HTTP_200_OK,
     )
 
