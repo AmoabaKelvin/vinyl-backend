@@ -4,6 +4,7 @@ import stripe
 from api.serializers import RegisterSerializer, UserSerializer
 from api.utils import return_structured_data
 from django.contrib.auth import login
+from django.shortcuts import get_object_or_404
 from knox.models import AuthToken
 from knox.views import LoginView as KnoxLoginView
 from knox.views import LogoutView
@@ -50,7 +51,7 @@ class SignUpView(generics.GenericAPIView):
             'token_expiry': formatted_token_expiry_date,
             'stripe_account_id': stripe_account_id,
             'stripe_connect_id': stripe_connect_id,
-            'ephemeral_key': ephemeral_key,
+            # 'ephemeral_key': ephemeral_key,
             'onboarding_url': onboarding,
         }
         return Response(
@@ -99,8 +100,13 @@ class LoginView(KnoxLoginView):
         # The stripe_connect_id will be None if the user is not an artist.
         connect_id = None
         if user.is_artist:
-            connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
-        customer = NormalCustomerProfile.objects.get(customer=user)
+            try:
+                connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
+            except ArtistCustomerProfile.DoesNotExist:
+                return Response(
+                    return_structured_data('failure', '', 'Artist not found')
+                )
+        customer = get_object_or_404(NormalCustomerProfile, customer=user)
         account_id = customer.customerid
         # Getting response data from the super class
         response = super(LoginView, self).post(request)
@@ -108,7 +114,7 @@ class LoginView(KnoxLoginView):
         response_data['user'] = UserSerializer(user).data
         response_data['stripe_account_id'] = account_id
         response_data['stripe_connect_id'] = connect_id
-        response_data['ephemeral_key'] = customer.ephemeral_key
+        # response_data['ephemeral_key'] = customer.ephemeral_key
         return Response(response.data)
 
 
