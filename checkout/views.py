@@ -2,6 +2,7 @@ import ast
 import os
 
 import stripe
+from api.permissions import UserIsArtistOrError
 from api.utils import return_structured_data
 from django.shortcuts import get_object_or_404
 from dotenv import load_dotenv
@@ -12,6 +13,12 @@ from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from song.models import Song
+
+from .stripe_utils import (
+    initiate_payout_request,
+    retrive_bank_account_info,
+    retrive_connect_account_balance,
+)
 
 load_dotenv()
 
@@ -51,6 +58,7 @@ def buy_song(request, song_id):
             'destination': song_artist_connect_id,
         },
         automatic_payment_methods={'enabled': True},
+        customer=NormalCustomerProfile.objects.get(user=request.user).customerid,
     )
     return Response(
         return_structured_data('success', payment_intent.client_secret, ''),
@@ -64,21 +72,19 @@ def retrieve_account_balance(request):
     """
     Retrieve the account balance of an artist
     """
-    # get the artist customer profile
     artist_customer_profile = ArtistCustomerProfile.objects.get(artist=request.user)
-    # get the account balance
+    artist_id = artist_customer_profile.artistid
+    # call the retrieve balance function from strip utils to retrieve the
+    # balance of a user.
+    # Since this can raise an error, return a response with an error message
+    # to the client.
     try:
-        response: dict = stripe.Balance.retrieve(
-            stripe_account=artist_customer_profile.artistid
-        )
-    except Exception as e:
+        balance_info: tuple = retrive_connect_account_balance(artist_id)
+    except:
         response = {'error': 'error retrieving account balance'}
         return Response(return_structured_data('failure', response, ''))
-    # if no error, return the account balance, specifically the
-    # available_balance and the pending balance.
-    # https://stripe.com/docs/api/balance/balance_object
-    available_balance = response['available'][0]['amount']
-    pending_balance = response['pending'][0]['amount']
+    # obtain the balance information from the balance_info tuple
+    available_balance, pending_balance = balance_info
     response_data = {
         'available_balance': available_balance,
         'pending_balance': pending_balance,
@@ -141,26 +147,29 @@ def display_thank_you(request):
     )
 
 
-# @api_view(['GET'])
-# @permission_classes([permissions.IsAuthenticated])
-# def delete_account(request):
-#     """
-#     Delete the account of an artist
-#     """
-#     if request.user.is_artist:
-#         artist = ArtistCustomerProfile.objects.get(artist=request.user)
-#         artist_stripe_account_id = artist.artistid
-#         response: dict = stripe.Account.delete(artist_stripe_account_id)
-#         artist.delete()
-#     customer = NormalCustomerProfile.objects.get(customer=request.user)
-#     customer_id = customer_id.customerid
-#     try:
-#         response: dict = stripe.Account.delete(customer_id)
-#         customer.delete()
-#     except Exception as e:
-#         return Response(
-#             return_structured_data('failure', '', 'Failed to delete account')
-#         )
-#     return Response(
-#         return_structured_data('success', response, ''), status=status.HTTP_200_OK
-#     )
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, UserIsArtistOrError])
+def request_payout(request):
+    """
+    Request a payout for an artist
+    """
+    artist = ArtistCustomerProfile.objects.get(artist=request.user)
+    artist_stripe_account_id = artist.artistid
+    # get account balance of user requesting the payout
+    available_balance = retrive_connect_account_balance(artist_stripe_account_id)[1]
+    bank_id = retrive_bank_account_info(artist_stripe_account_id)
+    if bank_id == None:
+        # no bank id was found for the particular user.
+        # return a response with an error message
+        response = {'error': 'No bank account found, please add one'}
+        return Response(return_structured_data('failure', response, ''))
+    amount = int(available_balance)
+    try:
+        payment_request_response = initiate_payout_request(
+            bank_id=bank_id, amount=amount
+        )
+    except stripe.error.InvalidRequestError as e:
+        print(e)
+        response = {'error': str(e)}
+        return Response(return_structured_data('failure', response, ''))
+    return Response(return_structured_data('success', payment_request_response, ''))
