@@ -28,7 +28,7 @@ def song_list_or_create_song(request):
             serializer.save(artist=request.user)
             return Response(return_structured_data('success', serializer.data, ''))
         serializer_error = (
-            f"missing field: {','.join([error for error in serializer.errors.keys()])}"
+            f"missing field: {','.join(list(serializer.errors.keys()))}"
         )
         return Response(
             return_structured_data('failure', serializer.data, serializer_error)
