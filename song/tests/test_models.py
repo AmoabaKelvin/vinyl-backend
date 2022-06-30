@@ -1,5 +1,3 @@
-import os
-
 from accounts.models import CustomUser
 from django.core.files import File
 from django.test import TestCase
