@@ -19,6 +19,5 @@ urlpatterns = [
         views.retrieve_customer_transaction_history,
         name='customer_history',
     ),
-    # path('account/delete', views.delete_account, name='account_delete'),
     path('done', views.display_thank_you, name='done'),
 ]
