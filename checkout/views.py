@@ -18,10 +18,10 @@ from .stripe_utils import (
     initiate_payout_request,
     list_artist_transactions,
     list_transactions_for_a_customer,
+    request_refund,
     retrieve_account_information,
     retrieve_connect_account_balance,
     update_account_information,
-    request_refund,
 )
 
 load_dotenv()
@@ -40,13 +40,18 @@ def buy_song(request, song_id):
         Response: response object
     """
     song = get_object_or_404(Song, id=song_id)
-    song_id = song.id
-    song_price = song.price
-    song_title = song.title
-    artist = song.artist.username
+
+    # get details of the song which will be used to create the payment intent
+    song_id = song.id  # id of the song
+    song_price = song.price  # price of the song, this is a DecimalField.
+    song_title = song.title  # title of the song
+    artist = song.artist.username  # artist of the song
+
     artist_connect_id = ArtistCustomerProfile.objects.get(artist=song.artist).artistid
     customer_id = NormalCustomerProfile.objects.get(customer=request.user).customerid
     # create payment intent and ephemeral key
+    # the ephemeral key will be used to save the customers payment method
+    # on the stripe payment sheet on the client side.
     payment_intent = create_payment_intent(
         song_title, artist, song_id, song_price, artist_connect_id, customer_id
     )
@@ -187,5 +192,6 @@ def request_payment_refund(request, song_id: int):
         response: dict = request_refund(customer_id, song_id)
     except stripe.error.InvalidRequestError:
         return Response(
-            return_structured_data('failure', '', 'No successful charge to refund'))
+            return_structured_data('failure', '', 'No successful charge to refund')
+        )
     return Response(return_structured_data('success', response['status'], ''))
