@@ -144,8 +144,8 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        # add knox token authentication to the list, this will be used for authenticating
-        # users with the token.
+        # add knox token authentication to the list, this will be used for
+        # authenticating users with the token.
         'knox.auth.TokenAuthentication',
     ],
 }
