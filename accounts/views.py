@@ -31,6 +31,7 @@ class SignUpView(generics.GenericAPIView):
         user = serializer.save()
         stripe_connect_id = None
         onboarding = None
+
         if user.is_artist:
             stripe_connect_id = ArtistCustomerProfile.objects.get(artist=user).artistid
             onboarding = stripe.AccountLink.create(
