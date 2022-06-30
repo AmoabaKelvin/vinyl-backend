@@ -63,7 +63,7 @@ def update_account_information(account_id: str, update_data: dict) -> dict:
 
 
 def create_payment_intent(
-        title: str, artist: str, song_id, amount, destination: str, customer: str
+    title: str, artist: str, song_id, amount, destination: str, customer: str
 ):
     """
     Create a payment intent and return the client secret
@@ -77,6 +77,9 @@ def create_payment_intent(
         client_secret: client secret of the payment intent
     https://stripe.com/docs/api/payment_intents/create
     """
+    # The price of the song needs to be an instance of an interger
+    # or else stripe will throw an error.
+    # INFO: 100 units is 1 dollar in stripe.
     price: int = int(amount * 100)
     response: dict = stripe.PaymentIntent.create(
         amount=price,
@@ -88,9 +91,7 @@ def create_payment_intent(
         automatic_payment_methods={'enabled': True},
         customer=customer,
         description=f"Payment for song: {title} by {artist}",
-        metadata={
-            'song_id': song_id
-        }
+        metadata={'song_id': song_id},
     )
     return response
 
