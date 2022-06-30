@@ -7,11 +7,11 @@ from song.models import Song
 
 class SongSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    artist = serializers.SlugRelatedField(read_only=True, slug_field="username")
+    artist = serializers.SlugRelatedField(read_only=True, slug_field='username')
 
     class Meta:
         model = Song
-        fields = "__all__"
+        fields = '__all__'
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ("id", "username", "email", "is_artist", "songs")
+        fields = ('id', 'username', 'email', 'is_artist', 'songs')
 
 
 # serializers pertaining to authentication
@@ -43,23 +43,23 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = (
-            "username",
-            "email",
-            "first_name",
-            "last_name",
-            "password",
-            "password2",
-            "is_artist",
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'password',
+            'password2',
+            'is_artist',
         )
 
     def validate(self, attrs):
         """
         Check whether the two entered passwords match
         """
-        if attrs.get("password") != attrs.get("password2"):
+        if attrs.get('password') != attrs.get('password2'):
             raise serializers.ValidationError(
                 {
-                    "password": "Passwords do not match. Ensure that you have entered the same password twice."
+                    'password': 'Passwords do not match. Ensure that you have entered the same password twice.'
                 }
             )
         return attrs
@@ -69,13 +69,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         Create and return a new user
         """
         user = CustomUser.objects.create(
-            username=validated_data.get("username"),
-            email=validated_data.get("email"),
-            first_name=validated_data.get("first_name"),
-            last_name=validated_data.get("last_name"),
-            is_artist=validated_data.get("is_artist"),
+            username=validated_data.get('username'),
+            email=validated_data.get('email'),
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            is_artist=validated_data.get('is_artist'),
         )
-        user.set_password(validated_data.get("password"))
+        user.set_password(validated_data.get('password'))
         user.save()
         return user
 
@@ -87,10 +87,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ("id", "username", "email", "is_artist", "password")
+        fields = ('id', 'username', 'email', 'is_artist', 'password')
         # setting the password to write_only ensures that it is not included
         # in the serialized data
-        extra_kwargs = {"password": {"write_only": True}}
+        extra_kwargs = {'password': {'write_only': True}}
 
 
 class PaymentInfoSerializer(serializers.Serializer):
