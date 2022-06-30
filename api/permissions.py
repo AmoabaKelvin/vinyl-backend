@@ -22,4 +22,4 @@ class UserIsArtistOrError(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return True if request.user.is_artist else False
+        return bool(request.user.is_artist)
