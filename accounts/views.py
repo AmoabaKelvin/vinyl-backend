@@ -118,9 +118,9 @@ class LoginView(KnoxLoginView):
         return Response(response.data)
 
 
-# Since the default LogoutView does not return any data to indicate that the user has been logged out,
-# we need to override it to return the correct response.
-class CustomLogoutView(LogoutView):
+# Since the default LogoutView does not return any data to indicate that the user
+# has been logged out,we need to override it to return the correct response.
+class CustomLogoutViews(LogoutView):
     def post(self, request, format=None):
         super(CustomLogoutView, self).post(request, format)
         return Response(return_structured_data('success', '', ''))
