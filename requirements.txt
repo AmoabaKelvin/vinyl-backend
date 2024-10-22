@@ -6,7 +6,7 @@ charset-normalizer==2.0.12
 cloudinary==1.29.0
 cryptography==42.0.4
 dj-database-url==0.5.0
-Django==4.1.13
+Django==4.2.16
 django-cloudinary-storage==0.3.0
 django-rest-knox==4.2.0
 djangorestframework==3.13.1
