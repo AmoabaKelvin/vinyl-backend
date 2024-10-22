@@ -1,6 +1,6 @@
 asgiref==3.5.2
 backports.zoneinfo==0.2.1
-certifi==2022.5.18.1
+certifi==2024.7.4
 cffi==1.15.0
 charset-normalizer==2.0.12
 cloudinary==1.29.0
